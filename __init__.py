@@ -8,6 +8,9 @@ import re
 import smtplib, ssl
 
 
+app = Flask(__name__)
+
+
 def send_email(to_mail, from_mail, message):
 
     email_from = f'{from_mail}@xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai'
@@ -21,8 +24,6 @@ def send_email(to_mail, from_mail, message):
 
     server.sendmail(email_from, to_mail, message.encode('utf-8'))
     server.quit()
-
-app = Flask(__name__)
 
 def create_connection(host, user, password, database): #значением функии create_connection будет подключение к базе
     connection = None
