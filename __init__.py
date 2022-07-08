@@ -7,14 +7,20 @@ from mysql.connector import connect, Error
 import re
 import smtplib, ssl
 
-email_from = 'no-reply@xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai'
-password = 'mdfgnfgjgjfkf'
 
-context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+def send_email(to_mail, from_mail, message):
 
-server = smtplib.SMTP('smtp.xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai', 587)
-server.starttls(context=context)
-server.login(email_from, password)
+    email_from = f'{from_mail}@xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai'
+    password = 'mdfgnfgjgjfkf'
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+
+    server = smtplib.SMTP('smtp-mail.xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai', 587)
+    server.starttls(context=context)
+    server.login(email_from, password)
+
+    server.sendmail(email_from, to_mail, message.encode('utf-8'))
+    server.quit()
 
 app = Flask(__name__)
 
@@ -89,8 +95,7 @@ def reg():
             code = code_generator()
             print(code)
             letter = f'Код подтверждения: {code}'
-            server.sendmail(email_from, email, letter.encode('utf-8'))
-            server.quit()
+            send_email(email, 'no-reply', letter)
             cur.execute(
                 f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             conn.commit()
@@ -122,8 +127,6 @@ def reg():
             code = code_generator()
             print(code)
             letter = f'Код подтверждения: {code}'
-            server.sendmail(email_from, email, letter.encode('utf-8'))
-            server.quit()
             cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             conn.commit()
             return '{'+f'"token": {token}, "permissions": 0'+'}'
