@@ -81,9 +81,9 @@ def reg():
         email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
         if phone in phone_list:
-            return '{"error": "Этот номер уже используется"}'
+            return '{"error": "Этот номер уже используется (004)"}'
         if email in email_list:
-            return '{"error": "Этот e-mail уже используется"}'
+            return '{"error": "Этот e-mail уже используется (004)"}'
 
         try:
             code = code_generator()
@@ -92,8 +92,9 @@ def reg():
             server.sendmail(email_from, email, letter.encode('utf-8'))
             server.quit()
             cur.execute(
-                f"INSERT INTO users (token, login, password, company, job, phone, email, permissions) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0)")
-            return '{' + f'"token": {token}, "permissions": 0, "code": {code}' + '}'
+                f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
+            conn.commit()
+            return '{' + f'"token": {token}, "permissions": 0' + '}'
         except Exception as e:
             print(e)
             return '{"error": "Внутреняя ошибка сервера (001)"}'
@@ -113,9 +114,9 @@ def reg():
         email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
         if phone in phone_list:
-            return '{"error": "Этот номер уже используется"}'
+            return '{"error": "Этот номер уже используется (004)"}'
         if email in email_list:
-            return '{"error": "Этот e-mail уже используется"}'
+            return '{"error": "Этот e-mail уже используется (004)"}'
 
         try:
             code = code_generator()
@@ -123,14 +124,28 @@ def reg():
             letter = f'Код подтверждения: {code}'
             server.sendmail(email_from, email, letter.encode('utf-8'))
             server.quit()
-            cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0)")
-            return '{'+f'"token": {token}, "permissions": 0, "code": {code}'+'}'
+            cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
+            conn.commit()
+            return '{'+f'"token": {token}, "permissions": 0'+'}'
         except Exception as e:
             print(e)
             return '{"error": "Внутреняя ошибка сервера (001)"}'
 
 
     return '{"error": "Внутреняя ошибка сервера (000)"}'
+
+@app.route('/commit_reg.json/')
+def commit_reg():
+    if request.method == 'POST':
+        code_1 = request.form.get('code')
+        token = request.form.get('token')
+        cur.execute(f"SELECT code FROM users WHERE token={token}")
+        code_2 = int(cur.fetchall()[0][0])
+        if code_1 == code_2:
+            cur.execute(""f"UPDATE users SET code='verification' WHERE token={token}""")
+            conn.commit()
+        else:
+            return '{"error": "Не удалось подтвердить подлинность аккаунта (003)"}'
 
 @app.route('/login.json/')
 def login():
