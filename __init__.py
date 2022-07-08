@@ -77,8 +77,8 @@ def reg():
 
         cur.execute(''f'SELECT phone, email FROM users''')
         info = cur.fetchall()
-        phone_list = [list(i)[1] for i in info]
-        email_list = [list(i)[2] for i in info]
+        phone_list = [list(i)[0] for i in info]
+        email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
         if phone in phone_list:
             return '{"error": "Этот номер уже используется"}'
@@ -87,13 +87,16 @@ def reg():
 
         try:
             code = code_generator()
+            print(code)
             letter = f'Код подтверждения: {code}'
             server.sendmail(email_from, email, letter.encode('utf-8'))
             server.quit()
-            cur.execute(''f'INSERT INTO users (token, login, password, company, job, phone, email) VALUES ({token}, {login}, {password}, {company}, {job}, {phone}, {email})''')
-            return '{"token": "'+token+'", "permissions": 0, "code": "'+code+'"}'
-        except Exception:
-            return '{"error": "Внутреняя ошибка сервера"}'
+            cur.execute(
+                f"INSERT INTO users (token, login, password, company, job, phone, email, permissions) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0)")
+            return '{' + f'"token": {token}, "permissions": 0, "code": {code}' + '}'
+        except Exception as e:
+            print(e)
+            return '{"error": "Внутреняя ошибка сервера (001)"}'
 
     elif request.method == 'GET':
         login = request.args.get('login')
@@ -106,8 +109,8 @@ def reg():
 
         cur.execute(''f'SELECT phone, email FROM users''')
         info = cur.fetchall()
-        phone_list = [list(i)[1] for i in info]
-        email_list = [list(i)[2] for i in info]
+        phone_list = [list(i)[0] for i in info]
+        email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
         if phone in phone_list:
             return '{"error": "Этот номер уже используется"}'
@@ -116,15 +119,18 @@ def reg():
 
         try:
             code = code_generator()
+            print(code)
             letter = f'Код подтверждения: {code}'
             server.sendmail(email_from, email, letter.encode('utf-8'))
             server.quit()
-            cur.execute(''f'INSERT INTO users (token, login, password, company, job, phone, email) VALUES ({token}, {login}, {password}, {company}, {job}, {phone}, {email})''')
-            return '{"token": "'+token+'", "permissions": 0, "code": "'+code+'"}'
-        except Exception:
-            return '{"error": "Внутреняя ошибка сервера"}'
+            cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0)")
+            return '{'+f'"token": {token}, "permissions": 0, "code": {code}'+'}'
+        except Exception as e:
+            print(e)
+            return '{"error": "Внутреняя ошибка сервера (001)"}'
 
-    return '{"error": "Внутреняя ошибка сервера"}'
+
+    return '{"error": "Внутреняя ошибка сервера (000)"}'
 
 @app.route('/login.json/')
 def login():
