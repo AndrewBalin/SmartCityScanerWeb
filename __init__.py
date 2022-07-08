@@ -1,6 +1,5 @@
 import random
 from flask import Flask, request
-import sqlite3
 from datetime import datetime
 import mysql.connector as mconnect
 from getpass import getpass
@@ -65,7 +64,7 @@ def code_generator():
 def test():
     return 'Hello, World!'
 
-@app.route('/register_user.json/')
+@app.route('/register_user.json/', methods=['POST', 'GET'])
 def reg():
     if request.method == 'POST':
         login = request.form.get('login')
@@ -74,6 +73,35 @@ def reg():
         job = request.form.get('job')
         phone = request.form.get('phone')
         email = request.form.get('email')
+        token = token_generator()
+
+        cur.execute(''f'SELECT phone, email FROM users''')
+        info = cur.fetchall()
+        phone_list = [list(i)[1] for i in info]
+        email_list = [list(i)[2] for i in info]
+        print(f"{phone_list}\n{email_list}")
+        if phone in phone_list:
+            return '{"error": "Этот номер уже используется"}'
+        if email in email_list:
+            return '{"error": "Этот e-mail уже используется"}'
+
+        try:
+            code = code_generator()
+            letter = f'Код подтверждения: {code}'
+            server.sendmail(email_from, email, letter.encode('utf-8'))
+            server.quit()
+            cur.execute(''f'INSERT INTO users (token, login, password, company, job, phone, email) VALUES ({token}, {login}, {password}, {company}, {job}, {phone}, {email})''')
+            return '{"token": "'+token+'", "permissions": 0, "code": "'+code+'"}'
+        except Exception:
+            return '{"error": "Внутреняя ошибка сервера"}'
+
+    elif request.method == 'GET':
+        login = request.args.get('login')
+        password = request.args.get('password')
+        company = request.args.get('company')
+        job = request.args.get('job')
+        phone = request.args.get('phone')
+        email = request.args.get('email')
         token = token_generator()
 
         cur.execute(''f'SELECT phone, email FROM users''')
