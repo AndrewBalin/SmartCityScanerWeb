@@ -73,70 +73,73 @@ def test():
 
 @app.route('/register_user.json/', methods=['POST', 'GET'])
 def reg():
-    if request.method == 'POST':
-        login = request.form.get('login')
-        password = request.form.get('password')
-        company = request.form.get('company')
-        job = request.form.get('job')
-        phone = request.form.get('phone')
-        email = request.form.get('email')
-        token = token_generator()
+    try:
+        if request.method == 'POST':
+            login = request.form.get('login')
+            password = request.form.get('password')
+            company = request.form.get('company')
+            job = request.form.get('job')
+            phone = request.form.get('phone')
+            email = request.form.get('email')
+            token = token_generator()
 
-        cur.execute(''f'SELECT phone, email FROM users''')
-        info = cur.fetchall()
-        phone_list = [list(i)[0] for i in info]
-        email_list = [list(i)[1] for i in info]
-        print(f"{phone_list}\n{email_list}")
-        if phone in phone_list:
-            return '{"error": "Этот номер уже используется (004)"}'
-        if email in email_list:
-            return '{"error": "Этот e-mail уже используется (004)"}'
+            cur.execute(''f'SELECT phone, email FROM users''')
+            info = cur.fetchall()
+            phone_list = [list(i)[0] for i in info]
+            email_list = [list(i)[1] for i in info]
+            print(f"{phone_list}\n{email_list}")
+            if phone in phone_list:
+                return '{"error": "Этот номер уже используется (004)"}'
+            if email in email_list:
+                return '{"error": "Этот e-mail уже используется (004)"}'
 
-        try:
-            code = code_generator()
-            print(code)
-            letter = f'Код подтверждения: {code}'
-            send_email(email, 'no-reply', letter)
-            cur.execute(
-                f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
-            conn.commit()
-            return '{' + f'"token": {token}, "permissions": 0' + '}'
-        except Exception as e:
-            print(e)
-            return '{"error": "Внутреняя ошибка сервера (001)"}'
+            try:
+                code = code_generator()
+                print(code)
+                letter = f'Код подтверждения: {code}'
+                send_email(email, 'no-reply', letter)
+                cur.execute(
+                    f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
+                conn.commit()
+                return '{' + f'"token": {token}, "permissions": 0' + '}'
+            except Exception as e:
+                print(e)
+                return '{"error": "Внутреняя ошибка сервера (001)"}'
 
-    elif request.method == 'GET':
-        login = request.args.get('login')
-        password = request.args.get('password')
-        company = request.args.get('company')
-        job = request.args.get('job')
-        phone = request.args.get('phone')
-        email = request.args.get('email')
-        token = token_generator()
+        elif request.method == 'GET':
+            login = request.args.get('login')
+            password = request.args.get('password')
+            company = request.args.get('company')
+            job = request.args.get('job')
+            phone = request.args.get('phone')
+            email = request.args.get('email')
+            token = token_generator()
 
-        cur.execute(''f'SELECT phone, email FROM users''')
-        info = cur.fetchall()
-        phone_list = [list(i)[0] for i in info]
-        email_list = [list(i)[1] for i in info]
-        print(f"{phone_list}\n{email_list}")
-        if phone in phone_list:
-            return '{"error": "Этот номер уже используется (004)"}'
-        if email in email_list:
-            return '{"error": "Этот e-mail уже используется (004)"}'
+            cur.execute(''f'SELECT phone, email FROM users''')
+            info = cur.fetchall()
+            phone_list = [list(i)[0] for i in info]
+            email_list = [list(i)[1] for i in info]
+            print(f"{phone_list}\n{email_list}")
+            if phone in phone_list:
+                return '{"error": "Этот номер уже используется (004)"}'
+            if email in email_list:
+                return '{"error": "Этот e-mail уже используется (004)"}'
 
-        try:
-            code = code_generator()
-            print(code)
-            letter = f'Код подтверждения: {code}'
-            cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
-            conn.commit()
-            return '{'+f'"token": {token}, "permissions": 0'+'}'
-        except Exception as e:
-            print(e)
-            return '{"error": "Внутреняя ошибка сервера (001)"}'
+            try:
+                code = code_generator()
+                print(code)
+                letter = f'Код подтверждения: {code}'
+                cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
+                conn.commit()
+                return '{'+f'"token": {token}, "permissions": 0'+'}'
+            except Exception as e:
+                print(e)
+                return '{"error": "Внутреняя ошибка сервера (001)"}'
 
 
-    return '{"error": "Внутреняя ошибка сервера (000)"}'
+        return '{"error": "Внутреняя ошибка сервера (000)"}'
+    except Exception as e:
+        return e
 
 @app.route('/commit_reg.json/')
 def commit_reg():
