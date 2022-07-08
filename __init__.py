@@ -106,7 +106,7 @@ def reg():
             print(e)
             return '{"error": "Внутреняя ошибка сервера (001)"}'
 
-elif request.method == 'GET':
+    elif request.method == 'GET':
         login = request.args.get('login')
         password = request.args.get('password')
         company = request.args.get('company')
