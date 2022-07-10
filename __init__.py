@@ -7,6 +7,13 @@ from datetime import datetime
 from mysql.connector import connect, Error
 import re
 import smtplib, ssl
+import logging
+from logging import FileHandler
+
+logger = logging.getLogger('logger')
+logger.setLevel(logging.DEBUG)
+handler = FileHandler('serverlog.log', )
+logger.addHandler(handler)
 
 app = Flask(__name__)
 
@@ -25,10 +32,11 @@ def send_email(to_mail, from_mail, message): # Функция отправки e
     msg['From'] = 'no-reply@xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai'
 
     server.sendmail(email_from, to_mail, msg.as_string())
-    print(f"Письмо успешно отправлено на электронную почту {to_mail}")
+    logger.info(f'Email successful sent to {to_mail}')
     server.quit()
 
 def sql_select(request):
+    logger.debug('Connection to database')
     conn = connect(
         host="norn.from.sh",
         user="a0595760_SmariCityScaner",
@@ -36,13 +44,17 @@ def sql_select(request):
         database="a0595760_SmariCityScaner"
     )
     cur = conn.cursor(buffered=True)
+    logger.debug('Successful connect to database')
     cur.execute(request)
     result = cur.fetchall()
+    logger.debug('Successful request to database')
     cur.close()
     conn.close()
+    logger.debug('Connection to database closed')
     return result
 
 def sql_update(request):
+    logger.debug('Connection to database')
     conn = connect(
         host="norn.from.sh",
         user="a0595760_SmariCityScaner",
@@ -50,39 +62,23 @@ def sql_update(request):
         database="a0595760_SmariCityScaner"
     )
     cur = conn.cursor(buffered=True)
+    logger.debug('Successful connect to database')
     cur.execute(request)
     conn.commit()
+    logger.debug('Successful request to database')
     cur.close()
     conn.close()
+    logger.debug('Connection to database closed')
     return 'OK'
-
-def cursor(): # Значением функии create_connection будет подключение к базе
-    global conn, cur
-    try:
-        connection = connect(
-            host="norn.from.sh",
-            user="a0595760_SmariCityScaner",
-            password="123456789",
-            database="a0595760_SmariCityScaner"
-        )
-        print("Connection to MySQL DB successful")
-        cur = connection.cursor(buffered=True)
-        conn = connection
-        return cursor
-    except Error as e:
-        print(f"The error '{e}' occurred")
 
 def token_generator(): # Генератор случайного токена пользователя и проверка на его уникальность
     chars = list('abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
     length = int(15)
     token = None
     tokens = sql_select(''f'SELECT token FROM users''')
-    print(tokens)
-    print(list(map(lambda x: x[0], tokens)))
     while (token in list(tokens)) or (not token):
         random.shuffle(chars)
         token = ''.join([random.choice(chars) for x in range(length)])
-    print(f'Token: {token}')
     return token
 
 def code_generator(): # Генератор 6-значного кода для подтверждения телефона или почты
@@ -109,11 +105,10 @@ def reg():
         phone = request.form.get('phone')
         email = request.form.get('email')
         token = token_generator()
-        print("test")
+        logger.info(f'New request from user {login} {token}')
         info = sql_select(''f'SELECT phone, email FROM users''')
         phone_list = [list(i)[0] for i in info]
         email_list = [list(i)[1] for i in info]
-        print(f"{phone_list}\n{email_list}")
         if phone in phone_list:
             return '{"error": "Этот номер уже используется (004)"}'
         if email in email_list:
@@ -124,6 +119,7 @@ def reg():
             print(code)
             letter = f'Добрый день, {login.split(" ")[1]} {login.split(" ")[2]}!\nДобро пожаловать в ваш новый Умный Город!\nДля продолжения регистрации введите этот код подтверждения: {code}\n\nСпасибо за участие в программе!'
             send_email(email, 'no-reply', letter)
+            logger.info(f'New user add [{token}, {email}, {code}]')
             sql_update(
                 f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             return '{' + f'"token": {token}, "permissions": 0' + '}'
@@ -139,11 +135,10 @@ def reg():
         phone = request.args.get('phone')
         email = request.args.get('email')
         token = token_generator()
-        print("test")
+        logger.info(f'New request from user {login} {token}')
         info = sql_select(''f'SELECT phone, email FROM users''')
         phone_list = [list(i)[0] for i in info]
         email_list = [list(i)[1] for i in info]
-        print(f"{phone_list}\n{email_list}")
         if phone in phone_list:
             return '{"error": "Этот номер уже используется (004)"}'
         if email in email_list:
@@ -154,8 +149,10 @@ def reg():
             print(code)
             letter = f'Добрый день, {login.split(" ")[1]} {login.split(" ")[2]}!\nДобро пожаловать в ваш новый Умный Город!\nДля продолжения регистрации введите этот код подтверждения: {code}\n\nСпасибо за участие в программе!'
             send_email(email, 'no-reply', letter)
-            sql_update(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
-            return '{'+f'"token": {token}, "permissions": 0'+'}'
+            logger.info(f'New user add [{token}, {email}, {code}]')
+            sql_update(
+                f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
+            return '{' + f'"token": {token}, "permissions": 0' + '}'
         except Exception as e:
             print(e)
             return '{"error": "Внутреняя ошибка сервера (001)"}'
