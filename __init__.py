@@ -9,7 +9,7 @@ import smtplib, ssl
 app = Flask(__name__)
 
 
-def send_email(to_mail, from_mail, message):
+def send_email(to_mail, from_mail, message): # Функция отправки e-mail
 
     email_from = f'{from_mail}@xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai'
     password = 'mdfgnfgjgjfkf'
@@ -24,7 +24,7 @@ def send_email(to_mail, from_mail, message):
     print(f"Письмо успешно отправлено на электронную почту {to_mail}")
     server.quit()
 
-def create_connection(host, user, password, database): #значением функии create_connection будет подключение к базе
+def create_connection(host, user, password, database): # Значением функии create_connection будет подключение к базе
     connection = None
     try:
         connection = connect(
@@ -44,9 +44,9 @@ conn = create_connection(
     password="123456789",
     database="a0595760_SmariCityScaner"
 )
-cur = conn.cursor(buffered=True)
+cur = conn.cursor(buffered=True) # Подключение к БД
 
-def token_generator():
+def token_generator(): # Генератор случайного токена пользователя и проверка на его уникальность
     chars = list('abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
     length = int(15)
     token = None
@@ -60,18 +60,18 @@ def token_generator():
     print(f'Token: {token}')
     return token
 
-def code_generator():
+def code_generator(): # Генератор 6-значного кода для подтверждения телефона или почты
     chars = list('1234567890')
     length = int(6)
     random.shuffle(chars)
     code = ''.join([random.choice(chars) for x in range(length)])
     return int(code)
 
-@app.route('/')
+@app.route('/') # Тестовая страница
 def test():
     return 'Hello, World!'
 
-@app.route('/register_user.json/', methods=['POST', 'GET'])
+@app.route('/register_user.json/', methods=['POST', 'GET']) # Регистрация
 def reg():
 
     if request.method == 'POST':
@@ -141,7 +141,7 @@ def reg():
     return '{"error": "Внутреняя ошибка сервера (000)"}'
 
 
-@app.route('/commit_reg.json/')
+@app.route('/commit_reg.json/') # Подтверждение почты
 def commit_reg():
     if request.method == 'POST':
         code_1 = int(request.form.get('code'))
@@ -170,7 +170,7 @@ def commit_reg():
             return '{"error": "Не удалось подтвердить подлинность аккаунта (003)"}'
 
 
-@app.route('/login.json/')
+@app.route('/login.json/') # Вход в аккаунт
 def login():
     if request.method == 'POST':
         login = request.form.get('login')
