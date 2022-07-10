@@ -25,9 +25,36 @@ def send_email(to_mail, from_mail, message): # Функция отправки e
     print(f"Письмо успешно отправлено на электронную почту {to_mail}")
     server.quit()
 
+def sql_select(request):
+    conn = connect(
+        host="norn.from.sh",
+        user="a0595760_SmariCityScaner",
+        password="123456789",
+        database="a0595760_SmariCityScaner"
+    )
+    cur = conn.cursor(buffered=True)
+    cur.execute(request)
+    result = cur.fetchall()
+    cur.close()
+    conn.close()
+    return result
+
+def sql_update(request):
+    conn = connect(
+        host="norn.from.sh",
+        user="a0595760_SmariCityScaner",
+        password="123456789",
+        database="a0595760_SmariCityScaner"
+    )
+    cur = conn.cursor(buffered=True)
+    cur.execute(request)
+    conn.commit()
+    cur.close()
+    conn.close()
+    return 'OK'
+
 def cursor(): # Значением функии create_connection будет подключение к базе
     global conn, cur
-    connection = None
     try:
         connection = connect(
             host="norn.from.sh",
@@ -42,17 +69,11 @@ def cursor(): # Значением функии create_connection будет п�
     except Error as e:
         print(f"The error '{e}' occurred")
 
-cursor()
-
-
 def token_generator(): # Генератор случайного токена пользователя и проверка на его уникальность
     chars = list('abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
     length = int(15)
     token = None
-    cur.execute(''f'SELECT token FROM users''')
-    tokens = cur.fetchall()
-    cur.close()
-    conn.close()
+    tokens = sql_select(''f'SELECT token FROM users''')
     print(tokens)
     print(list(map(lambda x: x[0], tokens)))
     while (token in list(tokens)) or (not token):
@@ -85,9 +106,7 @@ def reg():
         email = request.form.get('email')
         token = token_generator()
         print("test")
-        cur.execute(''f'SELECT phone, email FROM users''')
-        info = cur.fetchall()
-        cur.close()
+        info = sql_select(''f'SELECT phone, email FROM users''')
         phone_list = [list(i)[0] for i in info]
         email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
@@ -101,10 +120,8 @@ def reg():
             print(code)
             letter = f'Код подтверждения: {code}'
             send_email(email, 'no-reply', letter)
-            cur.execute(
+            sql_update(
                 f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
-            conn.commit()
-            cur.close()
             return '{' + f'"token": {token}, "permissions": 0' + '}'
         except Exception as e:
             print(e)
@@ -119,9 +136,7 @@ def reg():
         email = request.args.get('email')
         token = token_generator()
         print("test")
-        cur.execute(''f'SELECT phone, email FROM users''')
-        info = cur.fetchall()
-        cur.close()
+        info = sql_select(''f'SELECT phone, email FROM users''')
         phone_list = [list(i)[0] for i in info]
         email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
@@ -135,9 +150,7 @@ def reg():
             print(code)
             letter = f'Код подтверждения: {code}'
             send_email(email, 'no-reply', letter)
-            cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
-            conn.commit()
-            cur.close()
+            sql_update(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             return '{'+f'"token": {token}, "permissions": 0'+'}'
         except Exception as e:
             print(e)
@@ -152,14 +165,11 @@ def commit_reg():
     if request.method == 'POST':
         code_1 = int(request.form.get('code'))
         token = request.form.get('token')
-        cur.execute(f"SELECT code FROM users WHERE token='{token}'")
-        code_2 = int(cur.fetchall()[0][0])
-        cur.close()
+        code = sql_select(f"SELECT code FROM users WHERE token='{token}'")
+        code_2 = int(code[0][0])
         print(f"{code_1}\n{code_2}")
         if code_1 == code_2:
-            cur.execute(f"UPDATE users SET code='verification' WHERE token='{token}'")
-            conn.commit()
-            cur.close()
+            sql_update(f"UPDATE users SET code='verification' WHERE token='{token}'")
             return 'OK'
         else:
             return '{"error": "Не удалось подтвердить подлинность аккаунта (003)"}'
@@ -167,13 +177,11 @@ def commit_reg():
     elif request.method == 'GET':
         code_1 = int(request.args.get('code'))
         token = request.args.get('token')
-        cur.execute(f"SELECT code FROM users WHERE token='{token}'")
-        code_2 = int(cur.fetchall()[0][0])
+        code = sql_select(f"SELECT code FROM users WHERE token='{token}'")
+        code_2 = int(code[0][0])
         print(f"{code_1}\n{code_2}")
         if code_1 == code_2:
-            cur.execute(f"UPDATE users SET code='verification' WHERE token='{token}'")
-            conn.commit()
-            cur.close()
+            sql_update(f"UPDATE users SET code='verification' WHERE token='{token}'")
             return 'OK'
         else:
             return '{"error": "Не удалось подтвердить подлинность аккаунта (003)"}'
@@ -196,9 +204,7 @@ def login():
                     if match == None:
                         return '{"error": "Внутреняя ошибка сервера"}'
 
-            cur.execute(''f'SELECT token, permissions FROM users WHERE {login_type}={login}''')
-            result = cur.fetchall()
-            cur.close()
+            result = sql_select(''f'SELECT token, permissions FROM users WHERE {login_type}={login}, password={password}, code=`verification`''')
             return '{"token": "'+result[0][0]+'", "permissions":'+result[0][1]+'}'
 
         except Exception:
