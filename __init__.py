@@ -1,14 +1,14 @@
 import random
+from email.header import Header
+from email.mime.text import MIMEText
+
 from flask import Flask, request
 from datetime import datetime
 from mysql.connector import connect, Error
 import re
 import smtplib, ssl
 
-
 app = Flask(__name__)
-
-conn, cur = None, None
 
 def send_email(to_mail, from_mail, message): # Функция отправки e-mail
 
@@ -17,11 +17,14 @@ def send_email(to_mail, from_mail, message): # Функция отправки e
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLS)
 
-    server = smtplib.SMTP('mail.xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai', 587)
+    server = smtplib.SMTP('smtp.xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai:587')
     server.starttls(context=context)
     server.login(email_from, password)
+    msg = MIMEText(message, 'plain', 'utf-8')
+    msg['Subject'] = Header(u'Сканер Умного Города РФ', 'utf-8')
+    msg['From'] = 'no-reply@xn-----6kccnbhd7bxaidnbcayje0c.xn--p1ai'
 
-    server.sendmail(email_from, to_mail, message.encode('utf-8'))
+    server.sendmail(email_from, to_mail, msg.as_string())
     print(f"Письмо успешно отправлено на электронную почту {to_mail}")
     server.quit()
 
@@ -91,7 +94,8 @@ def code_generator(): # Генератор 6-значного кода для п
 
 @app.route('/') # Тестовая страница
 def test():
-    cursor()
+    send_email('lumanvr@yandex.ru', 'no-reply', 'Hello!')
+    send_email('mr.lumanavr348@gmail.com', 'no-reply', 'Hello!')
     return 'Hello, World!'
 
 @app.route('/register_user.json/', methods=['POST', 'GET']) # Регистрация
@@ -118,7 +122,7 @@ def reg():
         try:
             code = code_generator()
             print(code)
-            letter = f'Код подтверждения: {code}'
+            letter = f'Добрый день, {login.split(" ")[1]} {login.split(" ")[2]}!\nДобро пожаловать в ваш новый Умный Город!\nДля продолжения регистрации введите этот код подтверждения: {code}\n\nСпасибо за участие в программе!'
             send_email(email, 'no-reply', letter)
             sql_update(
                 f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
@@ -148,7 +152,7 @@ def reg():
         try:
             code = code_generator()
             print(code)
-            letter = f'Код подтверждения: {code}'
+            letter = f'Добрый день, {login.split(" ")[1]} {login.split(" ")[2]}!\nДобро пожаловать в ваш новый Умный Город!\nДля продолжения регистрации введите этот код подтверждения: {code}\n\nСпасибо за участие в программе!'
             send_email(email, 'no-reply', letter)
             sql_update(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             return '{'+f'"token": {token}, "permissions": 0'+'}'
@@ -163,8 +167,8 @@ def reg():
 @app.route('/commit_reg.json/') # Подтверждение почты
 def commit_reg():
     if request.method == 'POST':
-        code_1 = int(request.form.get('code'))
-        token = request.form.get('token')
+        code_1 = int(request.args.get('code'))
+        token = request.args.get('token')
         code = sql_select(f"SELECT code FROM users WHERE token='{token}'")
         code_2 = int(code[0][0])
         print(f"{code_1}\n{code_2}")
