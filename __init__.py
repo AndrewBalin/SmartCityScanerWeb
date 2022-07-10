@@ -70,6 +70,7 @@ def code_generator(): # Генератор 6-значного кода для п
 
 @app.route('/') # Тестовая страница
 def test():
+    cursor()
     return 'Hello, World!'
 
 @app.route('/register_user.json/', methods=['POST', 'GET']) # Регистрация
