@@ -8,6 +8,7 @@ import smtplib, ssl
 
 app = Flask(__name__)
 
+conn, cur = None, None
 
 def send_email(to_mail, from_mail, message): # Функция отправки e-mail
 
@@ -24,27 +25,25 @@ def send_email(to_mail, from_mail, message): # Функция отправки e
     print(f"Письмо успешно отправлено на электронную почту {to_mail}")
     server.quit()
 
-def create_connection(host, user, password, database): # Значением функии create_connection будет подключение к базе
+def cursor(): # Значением функии create_connection будет подключение к базе
+    global conn, cur
     connection = None
     try:
         connection = connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database
+            host="norn.from.sh",
+            user="a0595760_SmariCityScaner",
+            password="123456789",
+            database="a0595760_SmariCityScaner"
         )
         print("Connection to MySQL DB successful")
-        return connection
+        cur = connection.cursor(buffered=True)
+        conn = connection
+        return cursor
     except Error as e:
         print(f"The error '{e}' occurred")
 
-conn = create_connection(
-    host="norn.from.sh",
-    user="a0595760_SmariCityScaner",
-    password="123456789",
-    database="a0595760_SmariCityScaner"
-)
-cur = conn.cursor(buffered=True) # Подключение к БД
+cursor()
+
 
 def token_generator(): # Генератор случайного токена пользователя и проверка на его уникальность
     chars = list('abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
@@ -52,6 +51,8 @@ def token_generator(): # Генератор случайного токена п
     token = None
     cur.execute(''f'SELECT token FROM users''')
     tokens = cur.fetchall()
+    cur.close()
+    conn.close()
     print(tokens)
     print(list(map(lambda x: x[0], tokens)))
     while (token in list(tokens)) or (not token):
@@ -85,6 +86,7 @@ def reg():
         print("test")
         cur.execute(''f'SELECT phone, email FROM users''')
         info = cur.fetchall()
+        cur.close()
         phone_list = [list(i)[0] for i in info]
         email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
@@ -101,6 +103,7 @@ def reg():
             cur.execute(
                 f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             conn.commit()
+            cur.close()
             return '{' + f'"token": {token}, "permissions": 0' + '}'
         except Exception as e:
             print(e)
@@ -117,6 +120,7 @@ def reg():
         print("test")
         cur.execute(''f'SELECT phone, email FROM users''')
         info = cur.fetchall()
+        cur.close()
         phone_list = [list(i)[0] for i in info]
         email_list = [list(i)[1] for i in info]
         print(f"{phone_list}\n{email_list}")
@@ -132,6 +136,7 @@ def reg():
             send_email(email, 'no-reply', letter)
             cur.execute(f"INSERT INTO users (token, login, password, company, job, phone, email, permissions, code) VALUES ('{token}', '{login}', '{password}', '{company}', '{job}', '{phone}', '{email}', 0, '{code}')")
             conn.commit()
+            cur.close()
             return '{'+f'"token": {token}, "permissions": 0'+'}'
         except Exception as e:
             print(e)
@@ -148,10 +153,12 @@ def commit_reg():
         token = request.form.get('token')
         cur.execute(f"SELECT code FROM users WHERE token='{token}'")
         code_2 = int(cur.fetchall()[0][0])
+        cur.close()
         print(f"{code_1}\n{code_2}")
         if code_1 == code_2:
             cur.execute(f"UPDATE users SET code='verification' WHERE token='{token}'")
             conn.commit()
+            cur.close()
             return 'OK'
         else:
             return '{"error": "Не удалось подтвердить подлинность аккаунта (003)"}'
@@ -165,6 +172,7 @@ def commit_reg():
         if code_1 == code_2:
             cur.execute(f"UPDATE users SET code='verification' WHERE token='{token}'")
             conn.commit()
+            cur.close()
             return 'OK'
         else:
             return '{"error": "Не удалось подтвердить подлинность аккаунта (003)"}'
@@ -189,6 +197,7 @@ def login():
 
             cur.execute(''f'SELECT token, permissions FROM users WHERE {login_type}={login}''')
             result = cur.fetchall()
+            cur.close()
             return '{"token": "'+result[0][0]+'", "permissions":'+result[0][1]+'}'
 
         except Exception:
